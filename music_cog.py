@@ -1,5 +1,6 @@
 import discord
-from discord import File
+import time
+import os
 from discord.ext import commands
 from youtube_dl import YoutubeDL
 import random
@@ -76,6 +77,23 @@ class music_cog(commands.Cog):
 
                 if not self.is_playing:
                     await self.play_music()
+
+    @commands.command()
+    async def join(self, ctx):
+            if not ctx.message.author.voice:
+                await ctx.send('Dołącz do kanału głosowego, aby użyć tej komendy')
+            else:
+                with open('playlist.txt', 'r') as file:
+                    for line in file:
+                        song = self.search_yt(line)
+                        voice_channel = ctx.author.voice.channel
+                        if type(song) == type(True):
+                            await ctx.send("Nie znaleziono takiego utworu")
+                        else:
+                            self.music_queue.append([song, voice_channel])
+                            if not self.is_playing:
+                                await self.play_music()
+                                await ctx.send("Przywrócono ostatnią kolejkę")
 
     @commands.command(name="queue", aliases=["q"])
     async def queue(self, ctx):
@@ -172,11 +190,24 @@ class music_cog(commands.Cog):
                 if self.is_playing == False:
                     await self.play_music()
 
-    @commands.command(name="disconnect", aliases=["d","wypierdalaj"])
+    @commands.command(name="disconnect", aliases=["d", "wypierdalaj"])
     async def disconnect(self, ctx):
         self.vc.stop()
-        await ctx.voice_client.disconnect()
-        await ctx.send('Bot został odłączony')
+        os.remove("playlist.txt")
+        try:
+            file = open("playlist.txt", "a+")
+            retval = ""
+            for i in range(0, len(self.music_queue)):
+                retval += self.music_queue[i][0]['title'] + "\n"
+            await file.write(retval)
+            file.close()
+        except:
+            await ctx.voice_client.disconnect()
+            await ctx.send('Zapisano obecną kolejkę')
+            await ctx.send('Bot został odłączony')
+        else:
+            await ctx.voice_client.disconnect()
+            await ctx.send('fuit nie wiem co jest pinć')
 
     @commands.command(name="pause", aliases=['ps'])
     async def pause(self,ctx):
@@ -193,20 +224,38 @@ class music_cog(commands.Cog):
         bot_ping = round(self.bot.latency * 1000)
         if bot_ping in range(0,200):
             await ctx.send(f":green_square: pong! {round(self.bot.latency * 1000)}ms")
-        elif bot_ping in range(201,400):
+        elif bot_ping  in range(201,400):
             await ctx.send(f":yellow_square: pong! {round(self.bot.latency * 1000)}ms")
         elif bot_ping > 400:
             await ctx.send(f":red_square: pong! {round(self.bot.latency * 1000)}ms")
+
+    @commands.command()
+    async def connect(self, ctx):
+        if not ctx.message.author.voice:
+            await ctx.send('Dołącz do kanału głosowego, aby użyć tej komendy')
+        else:
+            voice_channel = ctx.author.voice.channel
+            vc = await voice_channel.connect()
+            vc.play(discord.FFmpegPCMAudio("7-Скачать-звук-космический-женский-оргазм.mp3"))
+            time.sleep(5)
+            await ctx.voice_client.disconnect()
+
+    @commands.command()
+    async def create(self, ctx):
+        query = " ".join(args)
+        filename = "%s.csv" % query
+
+
 
     @commands.command(name='help', aliases=['h'])
     async def help(self, ctx):
 
         embed = discord.Embed(
-            title='Bot Commands',
-            color=discord.Color.blurple()
+            title='Komendy Bota',
+            color=discord.Color.random()
         )
         embed.set_thumbnail(
-            url='https://cdn.discordapp.com/attachments/896336193745211392/898204632185176164/SoundSuite1.png')
+            url='http://marcinek.poznan.pl/source/strony/Pracownicy/2051827782.jpg')
         embed.add_field(name='-play', value='[-p] Dodaje wybrany utwór do kolejki', inline=True)
         embed.add_field(name='-skip', value='[-s] Pomija obecny utwór', inline=True)
         embed.add_field(name='-nowplaying', value='[-np] Wyświetla obecnie odtwarzany utwór', inline=True)
@@ -220,13 +269,5 @@ class music_cog(commands.Cog):
         embed.add_field(name='-pause', value='[-ps] Wsztrymuje odtwarzanie utworów', inline=True)
         embed.add_field(name='-resume', value='[-rs] Wznawia odtwarzanie utworów bota', inline=True)
         embed.add_field(name='-ping', value='Wyświetla ping bota', inline=True)
-        embed.set_footer(text='SoundSuite™')
+        embed.set_footer(text='© Kobiałson sp. z o.o.')
         await ctx.send(embed=embed)
-
-    @commands.command(name='code')
-    async def code(self, ctx):
-        await ctx.send(file=File('main.py'))
-        await ctx.send(file=File('music_cog.py'))
-
-    @commands.command(name='')
-
